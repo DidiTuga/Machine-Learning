@@ -6,7 +6,7 @@
 
 import random
 
-
+# cria instancias para o dataset
 def create_instances(t):
     # ler ficheiro
     tempo = 20*t
@@ -53,7 +53,7 @@ def create_instances(t):
             for i in instance:
                 f.write(i + "\n")
 
-
+# cria os k fold sets e guarda num ficheiro 
 def create_k_fold_sets(k):
     # criar k_fold_sets
     k_fold_sets = []
