@@ -6,11 +6,16 @@
 
 import random
 from numpy import array as np_array
+import numpy as np
 from sklearn.preprocessing import LabelEncoder
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.metrics import auc, roc_curve, accuracy_score
+import matplotlib.pyplot as plt
 
-# cria instancias para o dataset
+# create instances
+# recebe o numero de timesteps
+# cria as instancias e guarda num ficheiro
 def create_instances(t):
     # ler ficheiro
     tempo = 20*t
@@ -65,7 +70,9 @@ def create_instances(t):
             for i in instance:
                 f.write(i + "\n")
 
-# cria os k fold sets e guarda num ficheiro 
+# create k fold sets
+# recebe o numero de fold sets
+# cria os k fold sets com ids diferentes e forma logo os ficheros de treino e teste para cada fold set
 def create_k_fold_sets(k):
     # criar k_fold_sets
     k_fold_sets = []
@@ -135,14 +142,13 @@ def create_k_fold_sets(k):
                     for n in j:
                         n = "".join(n)
                         f.write(n)
-# 0 valor minimo da caracteristica
-# 1 valor maximo da caracteristica
-# x1 -> caracteristica 1
-# y1 -> caracteristica 2
-# z1 -> caracteristica 3
-# novo valor da caracteristica = antigo valor da caracteristica - minimo da caracteristica / maximo da caracteristica - minimo da caracteristica
-# para validar a validacao e o teste ele usa os valores do maximo e minimo do treino para normalizar os valores da validacao
 
+# normaliza os dados
+# Recebe o numero de fold sets
+# Guarda os dados normalizados no ficheiro treino e teste
+# Vai ler o ficheiro de treino ver os valores maximos e minimos de cada coluna
+# E depois vai ler o ficheiro de teste e vai normalizar os dados
+# o mesmo para o ficheiro de validacao
 def normalize(k):
     # ler ficheiro
     for n in range(k):
@@ -222,56 +228,92 @@ def normalize(k):
             for i in linhas:
                 f.write(i + "\n")
 
-# Multi Layer Perceptron
+
+
+# ler ficheiro
+# Recebe a variavel f que é o ficheiro
+# Retorna duas listas, uma com as caracteristicas e outra com as classes, tudo em float
+def ler_ficheiro(f):
+    x = []
+    y = []
+    lines = f.readlines()
+    for i in range(len(lines)):
+        
+        linha = lines[i].replace("\n", "")
+        linha = linha.split(",")
+        for j in range(len(linha)-2):
+            linha[j] = float(linha[j])
+        x.append(linha[:-2])
+        y.append(linha[-2])
+    y = np_array(y, dtype=np.float64)
+    label_encoder = LabelEncoder()
+    inter_encoded = label_encoder.fit_transform(y)
+    inter_encoded = inter_encoded.reshape(len(inter_encoded), 1)
+    onehot_encoder = OneHotEncoder(sparse=False)
+    y = onehot_encoder.fit_transform(inter_encoded)
+    return x, y
 
 def main():
     #create_instances(1)
-    #k = 10
+    k = 10
     #create_k_fold_sets(k)
     #normalize(k)
-    # Multi Layer Perceptron
-    
-    NN = MLPClassifier((5,5))
-    # Ler fichero de treino
-    #for n in range(0,1):
-    X = []
-    y = []
-    with open("csv/train/train_set_1.csv", "r") as f:
-        lines = f.readlines()
-        for i in range(len(lines)):
-            linha = lines[i].replace("\n", "")
-            linha = linha.split(",")
-            X.append(linha[:-2])
-            y.append(linha[-2])
-        y = np_array(y)
-        label_encoder = LabelEncoder()
-        inter_encoded = label_encoder.fit_transform(y)
-        onehot_encoder = OneHotEncoder(sparse=False)
-        inter_encoded = inter_encoded.reshape(len(inter_encoded), 1)
-        y = onehot_encoder.fit_transform(inter_encoded)
+
+
+    # Percorrer os k ficheiros
+    for n in range(1, 2):
+        print("--------------------" + str(n) + "--------------------")
+    # Multi Layer Perceptron (MLP)
+        classificador = MLPClassifier(hidden_layer_sizes=(5,5), random_state=1, solver='lbfgs', verbose=True)
+        # Ler ficheiro de treino
+        with open("csv/train/train_set_"+str(n)+".csv", "r") as f:
+            x, y = ler_ficheiro(f)
         # Treinar o modelo
-        NN.fit(X, y)
+        classificador.fit(x, y)
         # Ler ficheiro de teste
-        print("Teste")
-    yt = []
-    with open("csv/test/test_validation_set_1.csv", "r") as f:
-            lines = f.readlines()
-            for i in range(len(lines)):
-                linha = lines[i].replace("\n", "")
-                linha = linha.split(",")
-                X.append(linha[:-2])
-                yt.append(linha[-2])
-            yt = np_array(yt)
-            label_encoder = LabelEncoder()
-            inter_encoded = label_encoder.fit_transform(yt)
-            onehot_encoder = OneHotEncoder(sparse=False)
-            inter_encoded = inter_encoded.reshape(len(inter_encoded), 1)
-            yt = onehot_encoder.fit_transform(inter_encoded)
-            # Prever os valores
-            # Testar o modelo
-            y_pred = NN.predict(X)
-            # Calcular a acuracia
-            print("Acuracia: " + str(accuracy_score(yt, y_pred)))
+        with open("csv/test/test_validation_set_"+str(n)+".csv", "r") as f:
+            xt, yt = ler_ficheiro(f)
+        # Prever os valores
+        y_pred = classificador.predict(xt)
+        # obter Roc Curve e auc para cada classe e para todas as classes
+        for i in range(len(yt[0])):
+            fpr, tpr, thresholds = roc_curve(yt[:, i], y_pred[:, i])
+            roc_auc = auc(fpr, tpr)
+            print("ROC Curve " + str(i) + " (yt, y_pred) -> AUC")
+            print(roc_auc)
+            plt.plot(fpr, tpr, lw=1, label='ROC fold %d (area = %0.2f)' % (n, roc_auc))
+        fpr, tpr, thresholds = roc_curve(yt.ravel(), y_pred.ravel())
+        roc_auc = auc(fpr, tpr)
+        print("ROC Curve i (yt, y_pred) -> AUC")
+        print(roc_auc)
+        plt.plot(fpr, tpr, lw=1, label='ROC fold %d (area = %0.2f)' % (n, roc_auc))
+        plt.plot([0, 1], [0, 1], linestyle='--', lw=2, color='r',
+                label='Chance', alpha=.8)
+        plt.xlim([-0.05, 1.05])
+        plt.ylim([-0.05, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('Receiver operating characteristic example')
+        plt.legend(loc="lower right")
+        # save in png
+        plt.savefig("roc_curve_"+str(n)+".png")
+        # obter a acuracia
+        acu = accuracy_score(yt, y_pred)
+        print("Acuracia: " + str(acu))
+
+
+        # ----- log lbfgs -----
+        # acu K = 0 Acuracia: 0.5232644445493198
+        # acu K = 1 Acuracia: 0.614324722284351
+        # acu K = 2 Acuracia: 0.5539994591780313
+        # acu K = 3 Acuracia: 0.5724776450725363
+        # acu K = 4 Acuracia: 0.4790355149067585
+        # acu K = 5 Acuracia: 0.5755234242486665
+        # acu K = 6 Acuracia: 0.4405567250505835
+        # acu K = 7 Acuracia: 0.4977741831548077
+        # acu K = 8 Acuracia: 0.5813115590711916
+        # acu K = 9 Acuracia: 0.5876883288446063
+
             
 # ROC Curve i (yt, y_pred) -> AUCi(Roc Curve i)
 # media das AUCs -> AUCmédia
