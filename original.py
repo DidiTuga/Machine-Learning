@@ -253,6 +253,11 @@ def ler_ficheiro(f):
     y = onehot_encoder.fit_transform(inter_encoded)
     return x, y
 
+    # array com as classes
+words = ['Downstairs', 'Jogging', 'Sitting', 'Standing', 'Upstairs', 'Walking']
+
+
+
 def main():
     #create_instances(1)
     k = 10
@@ -264,7 +269,7 @@ def main():
     for n in range(1, 2):
         print("--------------------" + str(n) + "--------------------")
     # Multi Layer Perceptron (MLP)
-        classificador = MLPClassifier(hidden_layer_sizes=(5,5), random_state=1, solver='lbfgs', verbose=True)
+        classificador = MLPClassifier(hidden_layer_sizes=(60,60), random_state=1, solver='lbfgs', verbose=True, max_iter=1000)
         # Ler ficheiro de treino
         with open("csv/train/train_set_"+str(n)+".csv", "r") as f:
             x, y = ler_ficheiro(f)
@@ -281,19 +286,17 @@ def main():
             roc_auc = auc(fpr, tpr)
             print("ROC Curve " + str(i) + " (yt, y_pred) -> AUC")
             print(roc_auc)
-            plt.plot(fpr, tpr, lw=1, label='ROC fold %d (area = %0.2f)' % (n, roc_auc))
+            plt.plot(fpr, tpr, lw=1, label='Classe: %s (roc_auc = %0.2f)' % (words[i], roc_auc))
         fpr, tpr, thresholds = roc_curve(yt.ravel(), y_pred.ravel())
         roc_auc = auc(fpr, tpr)
         print("ROC Curve i (yt, y_pred) -> AUC")
         print(roc_auc)
-        plt.plot(fpr, tpr, lw=1, label='ROC fold %d (area = %0.2f)' % (n, roc_auc))
-        plt.plot([0, 1], [0, 1], linestyle='--', lw=2, color='r',
-                label='Chance', alpha=.8)
+        plt.plot(fpr, tpr, lw=1, label='Geral_%d (roc_auc = %0.2f)' % (n, roc_auc))
         plt.xlim([-0.05, 1.05])
         plt.ylim([-0.05, 1.05])
         plt.xlabel('False Positive Rate')
         plt.ylabel('True Positive Rate')
-        plt.title('Receiver operating characteristic example')
+        plt.title('Grafico')
         plt.legend(loc="lower right")
         # save in png
         plt.savefig("roc_curve_"+str(n)+".png")
@@ -302,7 +305,7 @@ def main():
         print("Acuracia: " + str(acu))
 
 
-        # ----- log lbfgs -----
+        # ----- log lbfgs ----- (5.5)
         # acu K = 0 Acuracia: 0.5232644445493198
         # acu K = 1 Acuracia: 0.614324722284351
         # acu K = 2 Acuracia: 0.5539994591780313
