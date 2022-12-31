@@ -11,6 +11,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.metrics import auc, roc_curve, accuracy_score
+from sklearn.model_selection import learning_curve
 import matplotlib.pyplot as plt
 
 # create instances
@@ -236,6 +237,7 @@ def normalize(k):
 def ler_ficheiro(f):
     x = []
     y = []
+    y_id = []
     lines = f.readlines()
     for i in range(len(lines)):
         
@@ -245,13 +247,18 @@ def ler_ficheiro(f):
             linha[j] = float(linha[j])
         x.append(linha[:-2])
         y.append(linha[-2])
+        y_id.append(linha[-1])
     y = np_array(y, dtype=np.float64)
     label_encoder = LabelEncoder()
     inter_encoded = label_encoder.fit_transform(y)
     inter_encoded = inter_encoded.reshape(len(inter_encoded), 1)
     onehot_encoder = OneHotEncoder(sparse=False)
     y = onehot_encoder.fit_transform(inter_encoded)
-    return x, y
+    y_id = np_array(y_id, dtype=np.int64)
+    inter_encoded = label_encoder.fit_transform(y_id)
+    inter_encoded = inter_encoded.reshape(len(inter_encoded), 1)
+    y_id = onehot_encoder.fit_transform(inter_encoded)
+    return x, y, y_id
 
     # array com as classes
 words = ['Downstairs', 'Jogging', 'Sitting', 'Standing', 'Upstairs', 'Walking']
@@ -263,63 +270,117 @@ def main():
     k = 10
     #create_k_fold_sets(k)
     #normalize(k)
-
+    roc_values = []
+    roc_values_id = []
 
     # Percorrer os k ficheiros
-    for n in range(1, 2):
+    for n in range(0,k):
         print("--------------------" + str(n) + "--------------------")
+        print("-------------------- Atividade --------------------")
+
     # Multi Layer Perceptron (MLP)
-        classificador = MLPClassifier(hidden_layer_sizes=(60,60), random_state=1, solver='lbfgs', verbose=True, max_iter=1000)
+        classificador = MLPClassifier(hidden_layer_sizes=(60,60), random_state=1, solver='lbfgs', verbose=True, max_iter=20)
+        
         # Ler ficheiro de treino
         with open("csv/train/train_set_"+str(n)+".csv", "r") as f:
-            x, y = ler_ficheiro(f)
+            x, y, y_id = ler_ficheiro(f)
+
         # Treinar o modelo
         classificador.fit(x, y)
         # Ler ficheiro de teste
         with open("csv/test/test_validation_set_"+str(n)+".csv", "r") as f:
-            xt, yt = ler_ficheiro(f)
+            xt, yt, yt_id= ler_ficheiro(f)
         # Prever os valores
         y_pred = classificador.predict(xt)
         # obter Roc Curve e auc para cada classe e para todas as classes
         for i in range(len(yt[0])):
             fpr, tpr, thresholds = roc_curve(yt[:, i], y_pred[:, i])
             roc_auc = auc(fpr, tpr)
-            print("ROC Curve " + str(i) + " (yt, y_pred) -> AUC")
+            print("ROC Curve_ " + words[i] + " (yt, y_pred) -> AUC" +str(n))
             print(roc_auc)
+            #acuracia
+            print("Acuracia_"+words[i]+": "+str(n))
+            print(accuracy_score(yt[:, i], y_pred[:, i]))
+            # plotar o grafico - curva roc de cada classe
             plt.plot(fpr, tpr, lw=1, label='Classe: %s (roc_auc = %0.2f)' % (words[i], roc_auc))
+        # roc curve geral
         fpr, tpr, thresholds = roc_curve(yt.ravel(), y_pred.ravel())
         roc_auc = auc(fpr, tpr)
-        print("ROC Curve i (yt, y_pred) -> AUC")
+        roc_values.append(roc_auc)
         print(roc_auc)
+        # acuracia
+        print("Acuracia geral "+str(n)+" :")
+        print(accuracy_score(yt, y_pred))
+        # plotar o grafico - curva roc da media de todas as classes
         plt.plot(fpr, tpr, lw=1, label='Geral_%d (roc_auc = %0.2f)' % (n, roc_auc))
+        # limite do eixo x
         plt.xlim([-0.05, 1.05])
+        # limite do eixo y
         plt.ylim([-0.05, 1.05])
+        # nome do eixo x
         plt.xlabel('False Positive Rate')
+        # nome do eixo y
         plt.ylabel('True Positive Rate')
-        plt.title('Grafico')
+        # nome do grafico
+        plt.title('Grafico ROC '+str(n))
         plt.legend(loc="lower right")
         # save in png
         plt.savefig("roc_curve_"+str(n)+".png")
         # obter a acuracia
         acu = accuracy_score(yt, y_pred)
         print("Acuracia: " + str(acu))
+        print("-------------------- IDs --------------------")
+        classificador_id = MLPClassifier(hidden_layer_sizes=(60,60), random_state=1, solver='lbfgs', verbose=True, max_iter=20)
+        classificador_id.fit(x, y_id)
+        y_pred_id = classificador_id.predict(xt)
 
+        # obter Roc Curve e auc para cada classe e para todas as classes
+        for i in range(len(yt_id[0])):
+            fpr, tpr, thresholds = roc_curve(yt_id[:, i], y_pred_id[:, i])
+            roc_auc = auc(fpr, tpr)
+            print("ROC Curve_ " + str(i) + " (yt, y_pred) -> AUC" +str(n))
+            print(roc_auc)
+            #acuracia
+            print("Acuracia_"+str(i)+": "+str(n))
+            print(accuracy_score(yt_id[:, i], y_pred_id[:, i]))
+            # plotar o grafico - curva roc de cada classe
+            plt.plot(fpr, tpr, lw=1, label='Classe: %s (roc_auc = %0.2f)' % (str(i), roc_auc))
+        # roc curve geral
+        fpr, tpr, thresholds = roc_curve(yt_id.ravel(), y_pred_id.ravel())
+        roc_auc = auc(fpr, tpr)
+        roc_values_id.append(roc_auc)
+        # acuracia
+        print("Acuracia geral - ID "+str(n)+" :")
+        print(accuracy_score(yt_id, y_pred_id))
+        # plotar o grafico - curva roc da media de todas as classes
+        plt.plot(fpr, tpr, lw=1, label='Geral_%d (roc_auc = %0.2f)' % (n, roc_auc))
+        # limite do eixo x
+        plt.xlim([-0.05, 1.05])
+        # limite do eixo y
+        plt.ylim([-0.05, 1.05])
+        # nome do eixo x
+        plt.xlabel('False Positive Rate')
+        # nome do eixo y
+        plt.ylabel('True Positive Rate')
+        # nome do grafico
+        plt.title('Grafico ROC IDS'+str(n))
+        plt.legend(loc="lower right")
+        # save in png
+        plt.savefig("roc_curve_id_"+str(n)+".png")
+    # media das AUCs
+    auc_media = np.mean(roc_values)
+    # desvio padrão das AUCs
+    auc_dp = np.std(roc_values)
+    # AUCmédia +- AUCdp
+    print("Atividade: AUC média +- AUC desvio padrão: " + str(auc_media) + " +- " + str(auc_dp))
+    # media das AUCs
+    auc_media_id = np.mean(roc_values_id)
+    # desvio padrão das AUCs
+    auc_dp_id = np.std(roc_values_id)
+    # AUCmédia +- AUCdp
+    print("ID: AUC média +- AUC desvio padrão: " + str(auc_media_id) + " +- " + str(auc_dp_id))
 
-        # ----- log lbfgs ----- (5.5)
-        # acu K = 0 Acuracia: 0.5232644445493198
-        # acu K = 1 Acuracia: 0.614324722284351
-        # acu K = 2 Acuracia: 0.5539994591780313
-        # acu K = 3 Acuracia: 0.5724776450725363
-        # acu K = 4 Acuracia: 0.4790355149067585
-        # acu K = 5 Acuracia: 0.5755234242486665
-        # acu K = 6 Acuracia: 0.4405567250505835
-        # acu K = 7 Acuracia: 0.4977741831548077
-        # acu K = 8 Acuracia: 0.5813115590711916
-        # acu K = 9 Acuracia: 0.5876883288446063
-
+    
             
-# ROC Curve i (yt, y_pred) -> AUCi(Roc Curve i)
-# media das AUCs -> AUCmédia
-# desvio padrão das AUCs -> AUCdp
-# AUCmédia +- AUCdp -> AUCmédia +- AUCdp
+
 main()
