@@ -155,7 +155,7 @@ def normalize(k):
     for n in range(k):
         with open("csv/train/train_set_"+str(n)+".csv", "r") as f:
             lines = f.readlines()
-            # criar array com os valores maximos e minimos
+                # criar array com os valores maximos e minimos
             max_min = []
             tamanho = lines[0].replace("\n", "")
             tamanho = tamanho.split(",")
@@ -229,8 +229,6 @@ def normalize(k):
             for i in linhas:
                 f.write(i + "\n")
 
-
-
 # ler ficheiro
 # Recebe a variavel f que é o ficheiro
 # Retorna duas listas, uma com as caracteristicas e outra com as classes, tudo em float
@@ -269,7 +267,9 @@ def main():
     #create_instances(1)
     k = 10
     #create_k_fold_sets(k)
+    print("Ficheiros criados")
     #normalize(k)
+    print("Ficheiros normalizados")
     roc_values = []
     roc_values_id = []
 
@@ -279,7 +279,7 @@ def main():
         print("-------------------- Atividade --------------------")
 
     # Multi Layer Perceptron (MLP)
-        classificador = MLPClassifier(hidden_layer_sizes=(60,60), random_state=1, solver='lbfgs', verbose=True, max_iter=20)
+        classificador = MLPClassifier(hidden_layer_sizes=(60,60), random_state=1, solver='lbfgs', max_iter=1000)
         
         # Ler ficheiro de treino
         with open("csv/train/train_set_"+str(n)+".csv", "r") as f:
@@ -330,7 +330,7 @@ def main():
         acu = accuracy_score(yt, y_pred)
         print("Acuracia: " + str(acu))
         print("-------------------- IDs --------------------")
-        classificador_id = MLPClassifier(hidden_layer_sizes=(60,60), random_state=1, solver='lbfgs', verbose=True, max_iter=20)
+        classificador_id = MLPClassifier(hidden_layer_sizes=(60,60), random_state=1, solver='lbfgs', max_iter=1000)
         classificador_id.fit(x, y_id)
         y_pred_id = classificador_id.predict(xt)
 
