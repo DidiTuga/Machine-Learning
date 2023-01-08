@@ -1,0 +1,51 @@
+Matriz de confusao 0:
+[[1137210   28195]
+ [  59601  173480]]
+Matriz de confusao 1:
+[[1044366   28674]
+ [  57453  157155]]
+Matriz de confusao 2:
+[[1206095   32760]
+ [  56946  190825]]
+Matriz de confusao 3:
+[[1252352   27008]
+ [  67947  187925]]
+Matriz de confusao 4:
+[[1109564   27001]
+ [  63903  163410]]
+Matriz de confusao 5:
+[[1104920   35885]
+ [  62118  166043]]
+Matriz de confusao 6:
+[[952757  25823]
+ [ 59243 136473]]
+Matriz de confusao 7:
+[[731091  29304]
+ [ 47581 104498]]
+Matriz de confusao 8:
+[[1418817   50808]
+ [  70517  223408]]
+Matriz de confusao 9:
+[[1039248   35667]
+ [  55506  159477]]
+Roc valor 0:
+0.8600486526143273
+Roc valor 1:
+0.8527832140460747
+Roc valor 2:
+0.8718615172881411
+Roc valor 3:
+0.8566693503001501
+Roc valor 4:
+0.8475599723728956
+Roc valor 5:
+0.8481445119893408
+Roc valor 6:
+0.8354564777534795
+Roc valor 7:
+0.8242959251441685
+Roc valor 8:
+0.8627564854980012
+Roc valor 9:
+0.8543154575012908
+FINAL: AUC media +- AUC desvio padrao: 0.8513891564507869 +- 0.012941373515674402

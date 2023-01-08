@@ -319,6 +319,7 @@ def main():
         plt.savefig("roc_curve_"+str(n)+".png")
         # limpar o grafico
         plt.clf()
+
     with open("valores.txt", "w") as f:
     # print de todas as matrizes de confusao
         for i in range(len(confusions_matrix)):
