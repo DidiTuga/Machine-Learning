@@ -265,10 +265,6 @@ def main():
     #print("Ficheiros normalizados")
     roc_values = []
     confusions_matrix = []
-
-    for n in range(0, k):
-        roc_values.append([])
-
     # Percorrer os k ficheiros
     for n in range(0, k):
         print("--------------------" + str(n) + "--------------------")
@@ -292,8 +288,6 @@ def main():
         for i in range(len(yt[0])):
             fpr, tpr, thresholds = roc_curve(yt[:, i], y_pred[:, i])
             roc_auc = auc(fpr, tpr)
-            # guardar os valores de roc para cada classe
-            roc_values[n].append(roc_auc)
             # plotar o grafico - curva roc de cada classe
             plt.plot(fpr, tpr, lw=1, label='Classe: %s (roc_auc = %0.2f)' % (words[i], roc_auc))
             # Matriz de confusao para cada classe
@@ -307,7 +301,7 @@ def main():
         fpr, tpr, thresholds = roc_curve(yt.ravel(), y_pred.ravel())
         roc_auc = auc(fpr, tpr)
         # guardar os valores de roc geral
-        roc_values[n].append(roc_auc)
+        roc_values.append(roc_auc)
         # plotar o grafico - curva roc da media de todas as classes
         plt.plot(fpr, tpr, lw=1, label='Geral_%d (roc_auc = %0.2f)' % (n, roc_auc))
         # limite do eixo x
@@ -325,19 +319,26 @@ def main():
         plt.savefig("roc_curve_"+str(n)+".png")
         # limpar o grafico
         plt.clf()
-
+    with open("valores.txt", "w") as f:
     # print de todas as matrizes de confusao
-    for i in range(len(confusions_matrix)):
-        print("Matriz de confusao " + str(i) + ":")
-        print(confusions_matrix[i])
-        print("Roc valor " + str(i) + ":")
-        print(roc_values[i])
-    # media das AUCs
-    auc_media = np.mean(roc_values)
-    # desvio padrão das AUCs
-    auc_dp = np.std(roc_values)
-    # AUCmédia +- AUCdp
-    print("FINAL: AUC média +- AUC desvio padrão: " + str(auc_media) + " +- " + str(auc_dp))
+        for i in range(len(confusions_matrix)):
+            print("Matriz de confusao " + str(i) + ":")
+            print(confusions_matrix[i])
+            f.write("Matriz de confusao " + str(i) + ":\n")
+            f.write(str(confusions_matrix[i]) + "\n")
+        # print de todas as AUCs
+        for i in range(len(roc_values)):
+            f.write("Roc valor " + str(i) + ":\n")
+            f.write(str(roc_values[i]) + "\n")
+            print("Roc valor " + str(i) + ":")
+            print(roc_values[i])
+        # media das AUCs
+        auc_media = np.mean(roc_values)
+        # desvio padrão das AUCs
+        auc_dp = np.std(roc_values)
+        # AUCmédia +- AUCdp
+        print("FINAL: AUC média +- AUC desvio padrão: " + str(auc_media) + " +- " + str(auc_dp))
+        f.write("FINAL: AUC média +- AUC desvio padrão: " + str(auc_media) + " +- " + str(auc_dp) + "\n")
 
 
 main()
