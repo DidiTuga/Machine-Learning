@@ -10,13 +10,14 @@ import numpy as np
 from sklearn.preprocessing import LabelEncoder
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.metrics import auc, roc_curve, accuracy_score
-from sklearn.model_selection import learning_curve
+from sklearn.metrics import auc, roc_curve, confusion_matrix
 import matplotlib.pyplot as plt
 
 # create instances
 # recebe o numero de timesteps
 # cria as instancias e guarda num ficheiro
+
+
 def create_instances(t):
     # ler ficheiro
     tempo = 20*t
@@ -62,7 +63,7 @@ def create_instances(t):
                 else:
                     break
             if (aux == tempo):
-            # adicionar a linha ao instance
+                # adicionar a linha ao instance
                 linha = "".join(linha) + "," + str(atividade_i) + "," + id_i
 
                 instance.append(linha)
@@ -74,6 +75,8 @@ def create_instances(t):
 # create k fold sets
 # recebe o numero de fold sets
 # cria os k fold sets com ids diferentes e forma logo os ficheros de treino e teste para cada fold set
+
+
 def create_k_fold_sets(k):
     # criar k_fold_sets
     k_fold_sets = []
@@ -89,7 +92,7 @@ def create_k_fold_sets(k):
         ids = len(ids)
         # vai existir ids/k fold sets (sempre arredondado para baixo)
         id_fold_set = ids//k
-        id_fold_set_rest = ids%k
+        id_fold_set_rest = ids % k
         # percorrer o ficheiro e meter id_fold_set em cada fold set
         aux = -1
         ids_aux = []
@@ -103,7 +106,7 @@ def create_k_fold_sets(k):
             linha = linha.split(",")
             id_i = linha[-1]
             # se o id nao estiver no fold set e ainda nao tiver todos os ids volta do inicio
-            if id_i not in ids_: 
+            if id_i not in ids_:
                 aux = aux + 1
                 ids_.append(id_i)
             ids_aux[aux].append(lines[i])
@@ -155,7 +158,7 @@ def normalize(k):
     for n in range(k):
         with open("csv/train/train_set_"+str(n)+".csv", "r") as f:
             lines = f.readlines()
-                # criar array com os valores maximos e minimos
+            # criar array com os valores maximos e minimos
             max_min = []
             tamanho = lines[0].replace("\n", "")
             tamanho = tamanho.split(",")
@@ -195,11 +198,9 @@ def normalize(k):
                 linha = linha.split(",")
                 linha_str = ""
                 for j in range(tamanho):
-                    linha[j] = (float(linha[j]) - max_min[j][0]) / \
-                        (max_min[j][1] - max_min[j][0])
+                    linha[j] = (float(linha[j]) - max_min[j][0]) / (max_min[j][1] - max_min[j][0])
                     if j == tamanho-1:
-                        linha_str += str(linha[j]) + "," + \
-                            linha[j+1] + "," + linha[j+2]
+                        linha_str += str(linha[j]) + "," + linha[j+1] + "," + linha[j+2]
                     else:
                         linha_str += str(linha[j]) + ","
                 linhas.append(linha_str)
@@ -235,82 +236,78 @@ def normalize(k):
 def ler_ficheiro(f):
     x = []
     y = []
-    y_id = []
     lines = f.readlines()
     for i in range(len(lines)):
-        
         linha = lines[i].replace("\n", "")
         linha = linha.split(",")
         for j in range(len(linha)-2):
             linha[j] = float(linha[j])
         x.append(linha[:-2])
         y.append(linha[-2])
-        y_id.append(linha[-1])
     y = np_array(y, dtype=np.float64)
     label_encoder = LabelEncoder()
     inter_encoded = label_encoder.fit_transform(y)
     inter_encoded = inter_encoded.reshape(len(inter_encoded), 1)
     onehot_encoder = OneHotEncoder(sparse=False)
     y = onehot_encoder.fit_transform(inter_encoded)
-    y_id = np_array(y_id, dtype=np.int64)
-    inter_encoded = label_encoder.fit_transform(y_id)
-    inter_encoded = inter_encoded.reshape(len(inter_encoded), 1)
-    y_id = onehot_encoder.fit_transform(inter_encoded)
-    return x, y, y_id
+    return x, y
 
     # array com as classes
 words = ['Downstairs', 'Jogging', 'Sitting', 'Standing', 'Upstairs', 'Walking']
 
 
-
 def main():
-    #create_instances(1)
+    # create_instances(1)
     k = 10
-    #create_k_fold_sets(k)
-    print("Ficheiros criados")
-    #normalize(k)
-    print("Ficheiros normalizados")
+    # create_k_fold_sets(k)
+    #print("Ficheiros criados")
+    # normalize(k)
+    #print("Ficheiros normalizados")
     roc_values = []
-    roc_values_id = []
+    confusions_matrix = []
+
+    for n in range(0, k):
+        roc_values.append([])
 
     # Percorrer os k ficheiros
-    for n in range(0,k):
+    for n in range(0, k):
         print("--------------------" + str(n) + "--------------------")
-        print("-------------------- Atividade --------------------")
 
     # Multi Layer Perceptron (MLP)
-        classificador = MLPClassifier(hidden_layer_sizes=(60,60), random_state=1, solver='lbfgs', max_iter=1000)
-        
+        classificador = MLPClassifier(hidden_layer_sizes=(60, 60), random_state=1, solver='lbfgs', max_iter=1500)
+
         # Ler ficheiro de treino
         with open("csv/train/train_set_"+str(n)+".csv", "r") as f:
-            x, y, y_id = ler_ficheiro(f)
+            x, y = ler_ficheiro(f)
 
         # Treinar o modelo
         classificador.fit(x, y)
         # Ler ficheiro de teste
         with open("csv/test/test_validation_set_"+str(n)+".csv", "r") as f:
-            xt, yt, yt_id= ler_ficheiro(f)
+            xt, yt = ler_ficheiro(f)
         # Prever os valores
         y_pred = classificador.predict(xt)
+        con_matrix = []
         # obter Roc Curve e auc para cada classe e para todas as classes
         for i in range(len(yt[0])):
             fpr, tpr, thresholds = roc_curve(yt[:, i], y_pred[:, i])
             roc_auc = auc(fpr, tpr)
-            print("ROC Curve_ " + words[i] + " (yt, y_pred) -> AUC" +str(n))
-            print(roc_auc)
-            #acuracia
-            print("Acuracia_"+words[i]+": "+str(n))
-            print(accuracy_score(yt[:, i], y_pred[:, i]))
+            # guardar os valores de roc para cada classe
+            roc_values[n].append(roc_auc)
             # plotar o grafico - curva roc de cada classe
             plt.plot(fpr, tpr, lw=1, label='Classe: %s (roc_auc = %0.2f)' % (words[i], roc_auc))
-        # roc curve geral
+            # Matriz de confusao para cada classe
+            cm = confusion_matrix(yt[:, i], y_pred[:, i])
+            con_matrix.append(cm)
+        # somar as matrizes de confusao e obter a matriz de confusao geral para todas as classes e guardar
+        con_matrix = np_array(con_matrix)
+        con_matrix = con_matrix.sum(axis=0)
+        confusions_matrix.append(con_matrix)
+        # obter a roc curve geral
         fpr, tpr, thresholds = roc_curve(yt.ravel(), y_pred.ravel())
         roc_auc = auc(fpr, tpr)
-        roc_values.append(roc_auc)
-        print(roc_auc)
-        # acuracia
-        print("Acuracia geral "+str(n)+" :")
-        print(accuracy_score(yt, y_pred))
+        # guardar os valores de roc geral
+        roc_values[n].append(roc_auc)
         # plotar o grafico - curva roc da media de todas as classes
         plt.plot(fpr, tpr, lw=1, label='Geral_%d (roc_auc = %0.2f)' % (n, roc_auc))
         # limite do eixo x
@@ -326,61 +323,21 @@ def main():
         plt.legend(loc="lower right")
         # save in png
         plt.savefig("roc_curve_"+str(n)+".png")
-        # obter a acuracia
-        acu = accuracy_score(yt, y_pred)
-        print("Acuracia: " + str(acu))
-        print("-------------------- IDs --------------------")
-        classificador_id = MLPClassifier(hidden_layer_sizes=(60,60), random_state=1, solver='lbfgs', max_iter=1000)
-        classificador_id.fit(x, y_id)
-        y_pred_id = classificador_id.predict(xt)
+        # limpar o grafico
+        plt.clf()
 
-        # obter Roc Curve e auc para cada classe e para todas as classes
-        for i in range(len(yt_id[0])):
-            fpr, tpr, thresholds = roc_curve(yt_id[:, i], y_pred_id[:, i])
-            roc_auc = auc(fpr, tpr)
-            print("ROC Curve_ " + str(i) + " (yt, y_pred) -> AUC" +str(n))
-            print(roc_auc)
-            #acuracia
-            print("Acuracia_"+str(i)+": "+str(n))
-            print(accuracy_score(yt_id[:, i], y_pred_id[:, i]))
-            # plotar o grafico - curva roc de cada classe
-            plt.plot(fpr, tpr, lw=1, label='Classe: %s (roc_auc = %0.2f)' % (str(i), roc_auc))
-        # roc curve geral
-        fpr, tpr, thresholds = roc_curve(yt_id.ravel(), y_pred_id.ravel())
-        roc_auc = auc(fpr, tpr)
-        roc_values_id.append(roc_auc)
-        # acuracia
-        print("Acuracia geral - ID "+str(n)+" :")
-        print(accuracy_score(yt_id, y_pred_id))
-        # plotar o grafico - curva roc da media de todas as classes
-        plt.plot(fpr, tpr, lw=1, label='Geral_%d (roc_auc = %0.2f)' % (n, roc_auc))
-        # limite do eixo x
-        plt.xlim([-0.05, 1.05])
-        # limite do eixo y
-        plt.ylim([-0.05, 1.05])
-        # nome do eixo x
-        plt.xlabel('False Positive Rate')
-        # nome do eixo y
-        plt.ylabel('True Positive Rate')
-        # nome do grafico
-        plt.title('Grafico ROC IDS'+str(n))
-        plt.legend(loc="lower right")
-        # save in png
-        plt.savefig("roc_curve_id_"+str(n)+".png")
+    # print de todas as matrizes de confusao
+    for i in range(len(confusions_matrix)):
+        print("Matriz de confusao " + str(i) + ":")
+        print(confusions_matrix[i])
+        print("Roc valor " + str(i) + ":")
+        print(roc_values[i])
     # media das AUCs
     auc_media = np.mean(roc_values)
     # desvio padrão das AUCs
     auc_dp = np.std(roc_values)
     # AUCmédia +- AUCdp
-    print("Atividade: AUC média +- AUC desvio padrão: " + str(auc_media) + " +- " + str(auc_dp))
-    # media das AUCs
-    auc_media_id = np.mean(roc_values_id)
-    # desvio padrão das AUCs
-    auc_dp_id = np.std(roc_values_id)
-    # AUCmédia +- AUCdp
-    print("ID: AUC média +- AUC desvio padrão: " + str(auc_media_id) + " +- " + str(auc_dp_id))
+    print("FINAL: AUC média +- AUC desvio padrão: " + str(auc_media) + " +- " + str(auc_dp))
 
-    
-            
 
 main()
