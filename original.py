@@ -257,12 +257,12 @@ words = ['Downstairs', 'Jogging', 'Sitting', 'Standing', 'Upstairs', 'Walking']
 
 
 def main():
-    # create_instances(1)
+    create_instances(1)
     k = 10
-    # create_k_fold_sets(k)
-    #print("Ficheiros criados")
-    # normalize(k)
-    #print("Ficheiros normalizados")
+    create_k_fold_sets(k)
+    print("Ficheiros criados")
+    normalize(k)
+    print("Ficheiros normalizados")
     roc_values = []
     confusions_matrix = []
     # Percorrer os k ficheiros
